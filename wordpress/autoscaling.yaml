@@ -94,6 +94,8 @@ resources:
       max_size: 3
       resource:
         type: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/lb_server.yaml
+        networks: 
+          - network: { get_resource: my_network }
         properties:
           flavor: {get_param: flavor}
           image: {get_param: image}
