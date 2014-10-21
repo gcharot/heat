@@ -1,4 +1,4 @@
 heat
 ====
 
-Heat demo templates
+Heat demo templates based on officials heat git repo
