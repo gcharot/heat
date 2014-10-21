@@ -95,6 +95,8 @@ resources:
           flavor: {get_param: flavor}
           image: {get_param: image}
           key_name: {get_param: key}
+          networks: 
+            - network: { get_resource: my_network }
           pool_id: {get_resource: pool}
           user_data:
             str_replace:
@@ -133,8 +135,8 @@ resources:
       monitors: [{get_resource: monitor}]
       subnet_id: {get_resource: my_subnet}
       lb_method: ROUND_ROBIN
-      vip:
-        protocol_port: 80
+      vip: {"session_persistence" : {type: SOURCE_IP}, "subnet": { get_resource: my_subnet }, "name": my_vip, "address": 10.0.0.42, "protocol_port": 80, "description": my_vip}
+
   lb:
     type: OS::Neutron::LoadBalancer
     properties:
