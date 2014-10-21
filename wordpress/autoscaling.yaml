@@ -95,7 +95,7 @@ resources:
           flavor: {get_param: flavor}
           image: {get_param: image}
           key_name: {get_param: key}
-          networks: 
+          pool_id: {get_resource: pool}
           user_data:
             str_replace:
               template: |
