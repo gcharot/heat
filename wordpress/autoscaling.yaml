@@ -17,9 +17,6 @@ parameters:
     type: string
     description: flavor used by the db server
     default: m1.small
-  subnet_id:
-    type: string
-    description: subnet on which the load balancer will be located
   database_name:
     type: string
     description: Name of the wordpress DB
