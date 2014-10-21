@@ -95,8 +95,6 @@ resources:
           flavor: {get_param: flavor}
           image: {get_param: image}
           key_name: {get_param: key}
-          networks: 
-            - network: { get_resource: my_network }
           pool_id: {get_resource: pool}
           metadata: {"metering.stack": {get_param: "OS::stack_id"}}
           user_data:

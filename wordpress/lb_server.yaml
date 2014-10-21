@@ -28,6 +28,8 @@ resources:
       metadata: {get_param: metadata}
       user_data: {get_param: user_data}
       user_data_format: RAW
+      networks: 
+        - network: { get_resource: my_network }
   member:
     type: OS::Neutron::PoolMember
     properties:
