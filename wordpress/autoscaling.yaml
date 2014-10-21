@@ -96,8 +96,6 @@ resources:
           image: {get_param: image}
           key_name: {get_param: key}
           networks: 
-            - network: { get_resource: my_network }
-          pool_id: {get_resource: pool}
           user_data:
             str_replace:
               template: |
@@ -147,6 +145,7 @@ resources:
   # pool.
   lb_floating:
     type: "OS::Neutron::FloatingIP"
+    depends_on: router_int
     properties:
       floating_network_id: {get_param: external_network_id}
       port_id: {get_attr: [pool, vip, port_id]}
