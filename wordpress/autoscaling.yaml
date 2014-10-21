@@ -84,6 +84,9 @@ resources:
             $db_name: {get_param: database_name}
             $db_user: {get_param: database_user}
             $db_password: {get_attr: [database_password, value]}
+
+
+
   web_server_group:
     type: OS::Heat::AutoScalingGroup
     properties:
@@ -95,7 +98,7 @@ resources:
           flavor: {get_param: flavor}
           image: {get_param: image}
           key_name: {get_param: key}
-          pool_id: {get_resource: pool}
+          #pool_id: {get_resource: pool}
           user_data:
             str_replace:
               template: |
