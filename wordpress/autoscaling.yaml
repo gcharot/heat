@@ -34,6 +34,26 @@ parameters:
     default: 6c83db7b-480e-4198-bc69-88df6fd17e55
 
 resources:
+
+  my_network:
+    type: OS::Neutron::Net
+
+  my_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: my_network }
+      cidr: 10.0.0.0/24
+      enable_dhcp: true
+      dns_nameservers : [8.8.8.8]
+
+  router_int:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: e619a9eb-62ff-42ad-a97c-5a1dac3a0118
+      subnet_id: { get_resource: my_subnet }
+
+
+
   database_password:
     type: OS::Heat::RandomString
   database_root_password:
@@ -44,6 +64,8 @@ resources:
       flavor: {get_param: database_flavor}
       image: {get_param: image}
       key_name: {get_param: key}
+      networks: 
+        - network: { get_resource: my_network }
       user_data_format: RAW
       user_data:
         str_replace:
@@ -76,6 +98,8 @@ resources:
           flavor: {get_param: flavor}
           image: {get_param: image}
           key_name: {get_param: key}
+          networks: 
+            - network: { get_resource: my_network }
           pool_id: {get_resource: pool}
           metadata: {"metering.stack": {get_param: "OS::stack_id"}}
           user_data:
@@ -113,7 +137,7 @@ resources:
     properties:
       protocol: HTTP
       monitors: [{get_resource: monitor}]
-      subnet_id: {get_param: subnet_id}
+      subnet_id: {get_resource: my_subnet}
       lb_method: ROUND_ROBIN
       vip:
         protocol_port: 80
