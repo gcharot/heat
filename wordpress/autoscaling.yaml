@@ -155,17 +155,17 @@ resources:
       floating_network_id: {get_param: external_network_id}
       port_id: {get_attr: [pool, vip, port_id]}
 
-outputs:
-  pool_ip_address:
-    value: {get_attr: [pool, vip, address]}
-    description: The IP address of the load balancing pool
-  website_url:
-    value:
-      str_replace:
-        template: http://host/wordpress/
-        params:
-          host: { get_attr: [lb_floating, floating_ip_address] }
-    description: >
-      This URL is the "external" URL that can be used to access the
-      Wordpress site.
-
+#outputs:
+#  pool_ip_address:
+#    value: {get_attr: [pool, vip, address]}
+#    description: The IP address of the load balancing pool
+#  website_url:
+#    value:
+#      str_replace:
+#        template: http://host/wordpress/
+#        params:
+#          host: { get_attr: [lb_floating, floating_ip_address] }
+#    description: >
+#      This URL is the "external" URL that can be used to access the
+#      Wordpress site.
+#
