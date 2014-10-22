@@ -94,13 +94,13 @@ resources:
       max_size: 3
       resource:
         type: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/lb_server.yaml
-        networks: 
-          - network: { get_resource: my_network }
         properties:
           flavor: {get_param: flavor}
           image: {get_param: image}
           key_name: {get_param: key}
           #pool_id: {get_resource: pool}
+          networks: 
+            - network: { get_resource: my_network }
           user_data:
             str_replace:
               template: |
@@ -150,13 +150,14 @@ resources:
 
   # assign a floating ip address to the load balancer
   # pool.
-  lb_floating:
-    type: "OS::Neutron::FloatingIP"
-    depends_on: router_int
-    properties:
-      floating_network_id: {get_param: external_network_id}
-      port_id: {get_attr: [pool, vip, port_id]}
 
+#  lb_floating:
+#    type: "OS::Neutron::FloatingIP"
+#    depends_on: router_int
+#    properties:
+#      floating_network_id: {get_param: external_network_id}
+#      port_id: {get_attr: [pool, vip, port_id]}
+#
 #outputs:
 #  pool_ip_address:
 #    value: {get_attr: [pool, vip, address]}

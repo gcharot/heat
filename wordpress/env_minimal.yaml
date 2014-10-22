@@ -1,0 +1,2 @@
+resource_registry:
+    My::WP::Server: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/autolol2.yaml

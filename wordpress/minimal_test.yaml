@@ -1,0 +1,13 @@
+description: >
+  Heat WordPress template, demonstrating Provider Resource.
+
+parameters:
+  user_key:
+    type: string
+    description : Name of a KeyPair to enable SSH access to the instance
+
+resources:
+  wordpress_instance:
+    type: My::WP::Server
+    properties:
+        key_name: {get_param: user_key}
