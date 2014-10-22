@@ -4,12 +4,15 @@ parameters:
   image:
     type: string
     description: Image used for servers
+    default: "CentOS 7 Cloud x86_64 (QCOW2)"
   key_name:
     type: string
     description: SSH key to connect to the servers
+    default: gcharot
   flavor:
     type: string
     description: flavor used by the servers
+    default: m1.small
 #  my_network:
 #    type: string
 #    description: subnet to use
@@ -28,7 +31,7 @@ resources:
       key_name: {get_param: key_name}
       networks: 
         #- network: { get_param: my_network }
-        - network: front
+        - network: "front"
       #user_data: {get_param: user_data}
       user_data_format: RAW
 #  member:
