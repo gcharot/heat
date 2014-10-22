@@ -99,8 +99,8 @@ resources:
           image: {get_param: image}
           key_name: {get_param: key}
           #pool_id: {get_resource: pool}
-          networks: 
-            - network: { get_resource: my_network }
+          #networks: 
+          #  - network: { get_resource: my_network }
           user_data:
             str_replace:
               template: |
