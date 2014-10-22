@@ -26,8 +26,9 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
-#      networks: 
-#        - network: { get_param: my_network }
+      networks: 
+        #- network: { get_param: my_network }
+        - network: front
       #user_data: {get_param: user_data}
       user_data_format: RAW
 #  member:
