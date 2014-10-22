@@ -10,9 +10,9 @@ parameters:
   flavor:
     type: string
     description: flavor used by the servers
-  my_network:
-    type: string
-    description: subnet to use
+#  my_network:
+#    type: string
+#    description: subnet to use
 #  pool_id:
 #    type: string
 #    description: Pool to contact
