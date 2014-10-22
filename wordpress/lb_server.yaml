@@ -16,9 +16,9 @@ parameters:
 #  my_network:
 #    type: string
 #    description: subnet to use
-#  pool_id:
-#    type: string
-#    description: Pool to contact
+  pool_id:
+    type: string
+    description: Pool to contact
 #  user_data:
 #    type: string
 #    description: Server user_data
@@ -34,9 +34,9 @@ resources:
         - network: "front"
       #user_data: {get_param: user_data}
       user_data_format: RAW
-#  member:
-#    type: OS::Neutron::PoolMember
-#    properties:
-#      pool_id: {get_param: pool_id}
-#      address: {get_attr: [server, first_address]}
-#      protocol_port: 80
+  member:
+    type: OS::Neutron::PoolMember
+    properties:
+      pool_id: {get_param: pool_id}
+      address: {get_attr: [server, first_address]}
+      protocol_port: 80
