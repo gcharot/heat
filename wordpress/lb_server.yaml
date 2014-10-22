@@ -10,6 +10,9 @@ parameters:
   flavor:
     type: string
     description: flavor used by the servers
+  my_network:
+    type: string
+    description: subnet to use
 #  pool_id:
 #    type: string
 #    description: Pool to contact
@@ -23,6 +26,8 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
+      networks: 
+        - network: { get_resource: my_network }
       #user_data: {get_param: user_data}
       user_data_format: RAW
 #  member:
