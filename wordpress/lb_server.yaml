@@ -18,10 +18,10 @@ parameters:
     description: subnet to use
   pool_id:
     type: string
-    description: Pool to contact
-#  user_data:
-#    type: string
-#    description: Server user_data
+    description: Pool to join
+  user_data:
+    type: string
+    description: Server user_data
 resources:
   server:
     type: OS::Nova::Server
@@ -32,7 +32,7 @@ resources:
       networks: 
         - network: { get_param: net_id }
         #- network: "front"
-      #user_data: {get_param: user_data}
+      user_data: {get_param: user_data}
       user_data_format: RAW
   member:
     type: OS::Neutron::PoolMember
