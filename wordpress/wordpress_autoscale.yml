@@ -1,0 +1,189 @@
+heat_template_version: 2013-05-23
+description: AutoScaling Example
+parameters:
+  image:
+    type: string
+    description: Image used for servers
+    default: "CentOS 7 Cloud x86_64 (QCOW2)"
+  key:
+    type: string
+    description: SSH key to connect to the servers
+    default: gcharot
+  flavor:
+    type: string
+    description: flavor used by the web servers
+    default: m1.small
+
+resources:
+
+##### NETWORKING #####
+
+  my_network:
+    type: OS::Neutron::Net
+    properties:
+      name: "front"
+
+  my_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: my_network }
+      cidr: 10.0.0.0/24
+      enable_dhcp: true
+      dns_nameservers : [8.8.8.8]
+
+  router_int:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: e619a9eb-62ff-42ad-a97c-5a1dac3a0118
+      subnet_id: { get_resource: my_subnet }
+
+##### LOAD BALANCING #####
+
+  my_monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 2
+      max_retries: 2
+      timeout: 2
+
+  my_pool:
+    type: OS::Neutron::Pool
+    properties:
+      description: test_pool
+      lb_method: ROUND_ROBIN
+      name: my_super_pool
+      protocol: HTTP
+      monitors: [{get_resource: my_monitor}]
+      subnet_id: { get_resource: my_subnet }
+      vip: {"session_persistence" : {type: SOURCE_IP}, "subnet": { get_resource: my_subnet }, "name": my_vip, "address": 10.0.0.42, "protocol_port": 80, "description": my_vip}
+
+  lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: 80
+      pool_id: {get_resource: my_pool}
+
+
+  lb_floating:
+    type: "OS::Neutron::FloatingIP"
+    depends_on: router_int
+    properties:
+      floating_network_id: 6c83db7b-480e-4198-bc69-88df6fd17e55
+      port_id:
+        get_attr: [my_pool, vip, port_id]
+
+##### COMPUTES #####
+
+# Autoscaling group for web fronts
+  web_server_group:
+    type: OS::Heat::AutoScalingGroup
+    depends_on: my_subnet
+    properties:
+      min_size: 2
+      max_size: 3
+      resource:
+        type: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/lb_server.yaml
+        properties:
+            flavor: {get_param: flavor}
+            image: {get_param: image}
+            key_name: {get_param: key}
+            pool_id: {get_resource: my_pool}
+            net_id: {get_resource: my_network}
+            user_data:
+              str_replace:
+                template: |
+                  #!/bin/bash
+                  yum -y install http://dl.fedoraproject.org/pub/epel/beta/7/x86_64/epel-release-7-0.2.noarch.rpm
+                  yum -y install http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+                  yum --enablerepo=remi -y install httpd mariadb mariadb-server wordpress
+                  systemctl enable mariadb httpd
+                  systemctl start mariadb
+                  iptables -F
+                  setenforce 0
+                  sed -i "/Deny from All/d" /etc/httpd/conf.d/wordpress.conf
+                  sed -i "s/Require local/Require all granted/" /etc/httpd/conf.d/wordpress.conf
+                  sed -i s/database_name_here/wp/ /etc/wordpress/wp-config.php
+                  sed -i s/username_here/wp/ /etc/wordpress/wp-config.php
+                  sed -i s/password_here/mariawp/ /etc/wordpress/wp-config.php
+                  sed -i s/localhost/$db_host/ /etc/wordpress/wp-config.php
+                  systemctl start httpd
+                  echo "I'm a born from heat and my name is $(hostname)" > /var/www/html/index.html
+                params:
+                  $db_host: {get_attr: [db01, first_address]}
+      
+# Database instance
+  db01:
+    type: OS::Nova::Server
+    properties:
+      image: "CentOS 7 Cloud x86_64 (QCOW2)"
+      name : db01
+      flavor: {get_param: flavor}
+      key_name: gcharot
+      networks: 
+        - network: { get_resource: my_network }
+      user_data: |
+        #!/bin/bash
+        yum -y install mariadb mariadb-server
+        systemctl enable mariadb 
+        systemctl start mariadb 
+        iptables -F
+        mysqladmin -u root password 'mariaroot'
+        cat << EOF | mysql -u root --password='mariaroot'
+        CREATE DATABASE wp;
+        GRANT ALL PRIVILEGES ON wp.* TO 'wp'@localhost IDENTIFIED BY "mariawp";
+        GRANT ALL PRIVILEGES ON wp.* TO 'wp'@'%' IDENTIFIED BY "mariawp";
+        FLUSH PRIVILEGES;
+        EXIT
+        EOF
+        setenforce 0
+
+  bastion:
+    type: OS::Nova::Server
+    properties:
+      image: "CentOS 7 Cloud x86_64 (QCOW2)"
+      name : bastion
+      flavor: m1.small
+      key_name: gcharot
+      networks: 
+        - network: { get_resource: my_network }
+
+  bastion_floating_ip:
+    type: OS::Nova::FloatingIP
+    properties:
+      pool: public
+
+
+  bastion_float_association:
+    type: OS::Nova::FloatingIPAssociation
+    properties:
+      floating_ip: { get_resource: bastion_floating_ip }
+      server_id: { get_resource: bastion }
+
+
+#  bastion_floating:
+#    type: OS::Neutron::FloatingIP
+#    depends_on: router_int
+#    properties:
+#      floating_network_id: 6c83db7b-480e-4198-bc69-88df6fd17e55
+#      port_id:
+#        get_attr: [bastion, addresses, port_id]
+# 
+
+
+outputs:
+  pool_ip_address:
+    value: {get_attr: [my_pool, vip, address]}
+    description: The IP address of the load balancing pool
+  website_url:
+    value:
+      str_replace:
+        template: http://host/wordpress/
+        params:
+          host: { get_attr: [lb_floating, floating_ip_address] }
+    description: >
+      This URL is the "external" URL that can be used to access the Wordpress site.
+
+ # bastion_dict:
+  #  value: {get_resource: [bastion]}
+
