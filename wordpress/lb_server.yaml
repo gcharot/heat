@@ -3,16 +3,13 @@ description: A load-balancer server
 parameters:
   image:
     type: string
-    description: Image used for servers
-    default: "CentOS 7 Cloud x86_64 (QCOW2)"
+    description: Image used for web servers
   key_name:
     type: string
     description: SSH key to connect to the servers
-    default: gcharot
   flavor:
     type: string
     description: flavor used by the servers
-    default: m1.small
   net_id:
     type: string
     description: subnet to use
@@ -29,9 +26,9 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
+      name: webnode0
       networks: 
         - network: { get_param: net_id }
-        #- network: "front"
       user_data: {get_param: user_data}
       user_data_format: RAW
   member:
