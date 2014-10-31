@@ -26,7 +26,7 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
-      name: webnode0
+      name: webnode
       networks: 
         - network: { get_param: net_id }
       user_data: {get_param: user_data}
