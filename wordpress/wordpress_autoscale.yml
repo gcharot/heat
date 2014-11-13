@@ -17,7 +17,12 @@ parameters:
   network_name:
     type: string
     description: Name of the deployed network
-    default: front
+    default: wordpress_subnet
+
+  network_cidr:
+    type: string
+    description: Name of the deployed network
+    default: 10.0.0.0/24
 
 
 resources:
@@ -33,7 +38,7 @@ resources:
     type: OS::Neutron::Subnet
     properties:
       network_id: { get_resource: my_network }
-      cidr: 10.0.0.0/24
+      cidr:  {get_param: network_cidr}
       enable_dhcp: true
       dns_nameservers : [8.8.8.8]
 
