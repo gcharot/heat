@@ -14,6 +14,12 @@ parameters:
     description: flavor used by the web servers
     default: m1.small
 
+  network_name:
+    type: string
+    description: Name of the deployed network
+    default: front
+
+
 resources:
 
 ##### NETWORKING #####
@@ -21,7 +27,7 @@ resources:
   my_network:
     type: OS::Neutron::Net
     properties:
-      name: "front"
+      name: {get_param: network_name}
 
   my_subnet:
     type: OS::Neutron::Subnet
