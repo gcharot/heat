@@ -127,7 +127,7 @@ resources:
   db01:
     type: OS::Nova::Server
     properties:
-      image: "CentOS 7 Cloud x86_64 (QCOW2)"
+      image: {get_param: image}
       name : db01
       flavor: {get_param: flavor}
       key_name: gcharot
@@ -152,7 +152,7 @@ resources:
   bastion:
     type: OS::Nova::Server
     properties:
-      image: "CentOS 7 Cloud x86_64 (QCOW2)"
+      image: {get_param: image}
       name : bastion
       flavor: m1.small
       key_name: gcharot
