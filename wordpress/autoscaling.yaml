@@ -68,7 +68,11 @@ resources:
         str_replace:
           template: |
             #!/bin/bash -v
-            yum -y install mariadb mariadb-server
+            yum -y install mariadb mariadb-server python-setuptools 
+            easy_install pip
+            pip install --upgrade setuptools
+            pip install python-swiftclient
+            pip install python-keystoneclient
             systemctl enable mariadb.service
             systemctl start mariadb.service
             mysqladmin -u root password $db_rootpassword

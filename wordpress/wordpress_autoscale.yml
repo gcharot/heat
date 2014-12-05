@@ -135,7 +135,11 @@ resources:
         - network: { get_resource: my_network }
       user_data: |
         #!/bin/bash
-        yum -y install mariadb mariadb-server
+        yum -y install mariadb mariadb-server python-setuptools 
+        easy_install pip
+        pip install --upgrade setuptools
+        pip install python-swiftclient
+        pip install python-keystoneclient
         systemctl enable mariadb 
         systemctl start mariadb 
         iptables -F
