@@ -24,6 +24,16 @@ parameters:
     description: CIDR of the deployed network
     default: 10.0.0.0/24
 
+  restore_from:
+    type: string
+    description: container and name of the backup to restore from
+    default: none
+
+  swift_ten_id:
+    type: string
+    description: swift id
+    default: 2e9fcfaa8a9f4e0aae8f4404088c8178
+
 
 resources:
 
@@ -120,8 +130,14 @@ resources:
                   sed -i s/localhost/$db_host/ /etc/wordpress/wp-config.php
                   systemctl start httpd
                   echo "I'm a born from heat and my name is $(hostname)" > /var/www/html/index.html
+                  if [ $backup != 'none' ]; then
+                    sed -i  "/DB_COLLATE/a define('WP_HOME','http://$site_ip/wordpress/');" /usr/share/wordpress/wp-config.php
+                    sed -i  "/DB_COLLATE/a define('WP_SITEURL','http://$site_ip/wordpress/');" /usr/share/wordpress/wp-config.php
+                  fi
                 params:
                   $db_host: {get_attr: [db01, first_address]}
+                  $backup: {get_param: restore_from}
+                  $site_ip: {get_attr: [lb_floating, floating_ip_address]}
       
 # Database instance
   db01:
@@ -133,25 +149,33 @@ resources:
       key_name: gcharot
       networks: 
         - network: { get_resource: my_network }
-      user_data: |
-        #!/bin/bash
-        yum -y install mariadb mariadb-server python-setuptools 
-        easy_install pip
-        pip install --upgrade setuptools
-        pip install python-swiftclient
-        pip install python-keystoneclient
-        systemctl enable mariadb 
-        systemctl start mariadb 
-        iptables -F
-        mysqladmin -u root password 'mariaroot'
-        cat << EOF | mysql -u root --password='mariaroot'
-        CREATE DATABASE wp;
-        GRANT ALL PRIVILEGES ON wp.* TO 'wp'@localhost IDENTIFIED BY "mariawp";
-        GRANT ALL PRIVILEGES ON wp.* TO 'wp'@'%' IDENTIFIED BY "mariawp";
-        FLUSH PRIVILEGES;
-        EXIT
-        EOF
-        setenforce 0
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            yum -y install mariadb mariadb-server python-setuptools  gcc
+            easy_install pip
+            pip install --upgrade setuptools
+            pip install python-swiftclient
+            pip install python-keystoneclient
+            systemctl enable mariadb 
+            systemctl start mariadb 
+            iptables -F
+            mysqladmin -u root password 'mariaroot'
+            cat << EOF | mysql -u root --password='mariaroot'
+            CREATE DATABASE wp;
+            GRANT ALL PRIVILEGES ON wp.* TO 'wp'@localhost IDENTIFIED BY "mariawp";
+            GRANT ALL PRIVILEGES ON wp.* TO 'wp'@'%' IDENTIFIED BY "mariawp";
+            FLUSH PRIVILEGES;
+            EXIT
+            EOF
+            setenforce 0
+            if [ $backup != 'none' ]; then
+              curl -s  https://ca.enocloud.com:8080/v1/AUTH_$swift_id/$backup | mysql -u root -p'mariaroot' wp
+            fi
+          params:
+            $backup: {get_param: restore_from}
+            $swift_id: {get_param: swift_ten_id}
 
   bastion:
     type: OS::Nova::Server
@@ -162,6 +186,13 @@ resources:
       key_name: gcharot
       networks: 
         - network: { get_resource: my_network }
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            echo "$db_host db01 db01" >> /etc/hosts 
+          params:
+            $db_host: {get_attr: [db01, first_address]}
 
   bastion_floating_ip:
     type: OS::Nova::FloatingIP
