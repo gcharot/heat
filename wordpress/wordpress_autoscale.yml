@@ -1,5 +1,6 @@
 heat_template_version: 2013-05-23
-description: AutoScaling Example
+description: Wordpress Autoscale example/demo AutoScaling Example - NOT FOR PRODUCTION
+
 parameters:
   image:
     type: string
@@ -77,7 +78,7 @@ resources:
       protocol: HTTP
       monitors: [{get_resource: my_monitor}]
       subnet_id: { get_resource: my_subnet }
-      vip: {"session_persistence" : {type: SOURCE_IP}, "subnet": { get_resource: my_subnet }, "name": my_vip, "address": 10.0.0.42, "protocol_port": 80, "description": my_vip}
+      vip: {"session_persistence" : {type: SOURCE_IP}, "subnet": { get_resource: my_subnet }, "name": my_vip, "protocol_port": 80, "description": my_vip}
 
   lb:
     type: OS::Neutron::LoadBalancer
@@ -221,6 +222,9 @@ outputs:
   pool_ip_address:
     value: {get_attr: [my_pool, vip, address]}
     description: The IP address of the load balancing pool
+  bastion_pub_ip:
+    value: {get_attr: [bastion, floating_ip_address]}
+    description: The Public IP address of the bastion
   website_url:
     value:
       str_replace:
