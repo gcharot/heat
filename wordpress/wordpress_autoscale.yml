@@ -223,7 +223,7 @@ outputs:
     value: {get_attr: [my_pool, vip, address]}
     description: The IP address of the load balancing pool
   bastion_pub_ip:
-    value: {get_attr: [bastion, floating_ip_address]}
+    value: {get_attr: [bastion_floating_ip, floating_ip_address]}
     description: The Public IP address of the bastion
   website_url:
     value:
