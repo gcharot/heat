@@ -10,6 +10,17 @@ parameters:
     type: string
     description: SSH key to connect to the servers
     default: gcharot
+
+  bastion_flavor:
+    type: string
+    description: flavor used by the bastion
+    default: m1.small
+
+  db_flavor:
+    type: string
+    description: flavor used by the dababase
+    default: m1.small
+
   flavor:
     type: string
     description: flavor used by the web servers
@@ -74,7 +85,7 @@ resources:
     properties:
       description: test_pool
       lb_method: ROUND_ROBIN
-      name: my_super_pool
+      name: my_pool
       protocol: HTTP
       monitors: [{get_resource: my_monitor}]
       subnet_id: { get_resource: my_subnet }
@@ -82,6 +93,7 @@ resources:
 
   lb:
     type: OS::Neutron::LoadBalancer
+    depends_on: my_pool
     properties:
       protocol_port: 80
       pool_id: {get_resource: my_pool}
@@ -146,7 +158,7 @@ resources:
     properties:
       image: {get_param: image}
       name : db01
-      flavor: {get_param: flavor}
+      flavor: {get_param: db_flavor}
       key_name: gcharot
       networks: 
         - network: { get_resource: my_network }
@@ -183,7 +195,7 @@ resources:
     properties:
       image: {get_param: image}
       name : bastion
-      flavor: m1.small
+      flavor: {get_param: bastion_flavor}
       key_name: gcharot
       networks: 
         - network: { get_resource: my_network }
@@ -192,6 +204,8 @@ resources:
           template: |
             #!/bin/bash
             echo "$db_host db01 db01" >> /etc/hosts 
+            curl https://raw.githubusercontent.com/gcharot/heat/master/wordpress/backup_wordpress.sh -O /usr/local/bin/
+            chmod 755 /usr/local/bin/backup_wordpress.sh
           params:
             $db_host: {get_attr: [db01, first_address]}
 
@@ -223,8 +237,8 @@ outputs:
     value: {get_attr: [my_pool, vip, address]}
     description: The IP address of the load balancing pool
   bastion_pub_ip:
-    value: {get_attr: [bastion_floating_ip, floating_ip_address]}
-    description: The Public IP address of the bastion
+    value: {get_attr: [bastion_floating_ip, ip]}
+    description: The bastion Public IP address
   website_url:
     value:
       str_replace:
@@ -233,7 +247,4 @@ outputs:
           host: { get_attr: [lb_floating, floating_ip_address] }
     description: >
       This URL is the "external" URL that can be used to access the Wordpress site.
-
- # bastion_dict:
-  #  value: {get_resource: [bastion]}
 
