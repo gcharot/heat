@@ -1,5 +1,5 @@
 heat_template_version: 2013-05-23
-description: Wordpress Autoscale example/demo AutoScaling Example - NOT FOR PRODUCTION
+description: Wordpress Autoscale example/demo AutoScaling - NOT FOR PRODUCTION
 
 parameters:
   image:
@@ -166,7 +166,7 @@ resources:
         str_replace:
           template: |
             #!/bin/bash
-            yum -y install mariadb mariadb-server python-setuptools  gcc
+            yum -y install mariadb mariadb-server python-setuptools  gcc python-devel
             easy_install pip
             pip install --upgrade setuptools
             pip install python-swiftclient
