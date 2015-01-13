@@ -26,6 +26,11 @@ parameters:
     description: flavor used by the web servers
     default: m1.small
 
+  web_min_pool:
+    type: string
+    description: min/initial number of web servers
+    default: 2
+
   network_name:
     type: string
     description: Name of the deployed network
@@ -114,8 +119,8 @@ resources:
     type: OS::Heat::AutoScalingGroup
     depends_on: my_subnet
     properties:
-      min_size: 2
-      max_size: 3
+      min_size:  {get_param: web_min_pool}
+      max_size: 5
       resource:
         type: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/lb_server.yaml
         properties:
@@ -135,6 +140,7 @@ resources:
                   systemctl start mariadb
                   iptables -F
                   setenforce 0
+                  sed -i  's/=enforcing/=disabled/g' /etc/selinux/config
                   sed -i "/Deny from All/d" /etc/httpd/conf.d/wordpress.conf
                   sed -i "s/Require local/Require all granted/" /etc/httpd/conf.d/wordpress.conf
                   sed -i s/database_name_here/wp/ /etc/wordpress/wp-config.php
@@ -183,6 +189,7 @@ resources:
             EXIT
             EOF
             setenforce 0
+            sed -i  's/=enforcing/=disabled/g' /etc/selinux/config
             if [ $backup != 'none' ]; then
               curl -s  https://ca.enocloud.com:8080/v1/AUTH_$swift_id/$backup | mysql -u root -p'mariaroot' wp
             fi
