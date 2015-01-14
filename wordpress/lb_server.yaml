@@ -19,6 +19,10 @@ parameters:
   user_data:
     type: string
     description: Server user_data
+  metadata:
+    type: json
+
+
 resources:
   server:
     type: OS::Nova::Server
@@ -26,6 +30,7 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
+      metadata: {get_param: metadata}
       name: webnode
       networks: 
         - network: { get_param: net_id }
