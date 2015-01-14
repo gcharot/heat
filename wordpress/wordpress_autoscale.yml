@@ -112,7 +112,7 @@ resources:
       port_id:
         get_attr: [my_pool, vip, port_id]
 
-##### COMPUTES #####
+##### Instances declaration #####
 
 # Autoscaling group for web fronts
   web_server_group:
@@ -127,17 +127,18 @@ resources:
             flavor: {get_param: web_flavor}
             image: {get_param: image}
             key_name: {get_param: key}
+            metadata: {"metering.stack": {get_param: "OS::stack_id"}}
             pool_id: {get_resource: my_pool}
             net_id: {get_resource: my_network}
+
             user_data:
               str_replace:
                 template: |
                   #!/bin/bash
                   yum -y install http://dl.fedoraproject.org/pub/epel/beta/7/x86_64/epel-release-7-0.2.noarch.rpm
                   yum -y install http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
-                  yum --enablerepo=remi -y install httpd mariadb mariadb-server wordpress
-                  systemctl enable mariadb httpd
-                  systemctl start mariadb
+                  yum --enablerepo=remi -y install httpd mariadb wordpress
+                  systemctl enable httpd
                   iptables -F
                   setenforce 0
                   sed -i  's/=enforcing/=disabled/g' /etc/selinux/config
@@ -157,6 +158,32 @@ resources:
                   $db_host: {get_attr: [db01, first_address]}
                   $backup: {get_param: restore_from}
                   $site_ip: {get_attr: [lb_floating, floating_ip_address]}
+
+#
+#  web_server_scaleup_policy:
+#    type: OS::Heat::ScalingPolicy
+#    properties:
+#      adjustment_type: change_in_capacity
+#      auto_scaling_group_id: {get_resource: web_server_group}
+#      cooldown: 60
+#      scaling_adjustment: 1
+#
+#  cpu_alarm_high:
+#    type: OS::Ceilometer::Alarm
+#    properties:
+#      description: Scale-up if the average CPU > 50% for 1 minute
+#      meter_name: cpu_util
+#      statistic: avg
+#      period: 60
+#      evaluation_periods: 1
+#      threshold: 50
+#      alarm_actions:
+#        - {get_attr: [web_server_scaleup_policy, alarm_url]}
+#      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
+#      comparison_operator: gt
+#
+#
+
       
 # Database instance
   db01:
@@ -197,6 +224,7 @@ resources:
             $backup: {get_param: restore_from}
             $swift_id: {get_param: swift_ten_id}
 
+# Bastion instance
   bastion:
     type: OS::Nova::Server
     properties:
