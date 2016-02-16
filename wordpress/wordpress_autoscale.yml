@@ -51,6 +51,15 @@ parameters:
     description: swift id
     default: 2e9fcfaa8a9f4e0aae8f4404088c8178
 
+  rt_id:
+    type: string
+    description: ID of the router to connect the network to
+    default: 2f0c3cd1-e667-45e5-9452-1213dc1c7840
+
+  floating_net_id:
+    type: string
+    description: ID of the floating IP network for public IPs
+    default: 522762bc-3719-4cd7-be25-7832614aa65e
 
 resources:
 
@@ -72,7 +81,7 @@ resources:
   router_int:
     type: OS::Neutron::RouterInterface
     properties:
-      router_id: 2f0c3cd1-e667-45e5-9452-1213dc1c7840
+      router_id: { get_param: rt_id }
       subnet_id: { get_resource: my_subnet }
 
 ##### LOAD BALANCING #####
@@ -108,7 +117,7 @@ resources:
     type: "OS::Neutron::FloatingIP"
     depends_on: router_int
     properties:
-      floating_network_id: 522762bc-3719-4cd7-be25-7832614aa65e
+      floating_network_id: { get_param: floating_net_id }
       port_id:
         get_attr: [my_pool, vip, port_id]
 
