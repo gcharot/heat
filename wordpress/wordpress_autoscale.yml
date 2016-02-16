@@ -5,7 +5,7 @@ parameters:
   image:
     type: string
     description: Image used for servers
-    default: "CentOS 7 Cloud x86_64 (QCOW2)"
+    default: "CentOS 7 x86_64"
   key:
     type: string
     description: SSH key to connect to the servers
@@ -72,7 +72,7 @@ resources:
   router_int:
     type: OS::Neutron::RouterInterface
     properties:
-      router_id: e619a9eb-62ff-42ad-a97c-5a1dac3a0118
+      router_id: 2f0c3cd1-e667-45e5-9452-1213dc1c7840
       subnet_id: { get_resource: my_subnet }
 
 ##### LOAD BALANCING #####
@@ -108,7 +108,7 @@ resources:
     type: "OS::Neutron::FloatingIP"
     depends_on: router_int
     properties:
-      floating_network_id: 6c83db7b-480e-4198-bc69-88df6fd17e55
+      floating_network_id: 522762bc-3719-4cd7-be25-7832614aa65e
       port_id:
         get_attr: [my_pool, vip, port_id]
 
