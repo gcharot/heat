@@ -49,7 +49,7 @@ parameters:
   swift_ten_id:
     type: string
     description: swift id
-    default: 2e9fcfaa8a9f4e0aae8f4404088c8178
+    default: b0d0602de97f47c8ae25f48b2052ad19
 
   rt_id:
     type: string
@@ -146,7 +146,7 @@ resources:
                   #!/bin/bash
                   yum -y install http://dl.fedoraproject.org/pub/epel/beta/7/x86_64/epel-release-7-0.2.noarch.rpm
                   yum -y install http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
-                  yum --enablerepo=remi -y install httpd mariadb wordpress
+                  yum --enablerepo=remi -y install httpd mariadb wordpress sysbench psmisc
                   systemctl enable httpd
                   iptables -F
                   setenforce 0
@@ -163,37 +163,15 @@ resources:
                     sed -i  "/DB_COLLATE/a define('WP_HOME','http://$site_ip/wordpress/');" /usr/share/wordpress/wp-config.php
                     sed -i  "/DB_COLLATE/a define('WP_SITEURL','http://$site_ip/wordpress/');" /usr/share/wordpress/wp-config.php
                   fi
+                  echo "sysbench --test=cpu --cpu-max-prime=2000000 run &" > /home/centos/burn.sh
+                  chmod 755 /home/centos/burn.sh
                 params:
                   $db_host: {get_attr: [db01, first_address]}
                   $backup: {get_param: restore_from}
                   $site_ip: {get_attr: [lb_floating, floating_ip_address]}
 
-#
-#  web_server_scaleup_policy:
-#    type: OS::Heat::ScalingPolicy
-#    properties:
-#      adjustment_type: change_in_capacity
-#      auto_scaling_group_id: {get_resource: web_server_group}
-#      cooldown: 60
-#      scaling_adjustment: 1
-#
-#  cpu_alarm_high:
-#    type: OS::Ceilometer::Alarm
-#    properties:
-#      description: Scale-up if the average CPU > 50% for 1 minute
-#      meter_name: cpu_util
-#      statistic: avg
-#      period: 60
-#      evaluation_periods: 1
-#      threshold: 50
-#      alarm_actions:
-#        - {get_attr: [web_server_scaleup_policy, alarm_url]}
-#      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
-#      comparison_operator: gt
-#
-#
 
-      
+
 # Database instance
   db01:
     type: OS::Nova::Server
@@ -227,7 +205,7 @@ resources:
             setenforce 0
             sed -i  's/=enforcing/=disabled/g' /etc/selinux/config
             if [ $backup != 'none' ]; then
-              curl -s  https://ca.enocloud.com:8080/v1/AUTH_$swift_id/$backup | mysql -u root -p'mariaroot' wp
+              curl -s  http://showcase.rcip.redhat.com:8080/v1/AUTH_$swift_id/$backup | mysql -u root -p'mariaroot' wp
             fi
           params:
             $backup: {get_param: restore_from}
@@ -277,6 +255,60 @@ resources:
 # 
 
 
+###### AUTOSCALING POLICIES ######
+
+# Manual scaling can be done with :
+# heat stack-update stack_name -f wordpress_autoscale.yml -P "web_min_pool=N"
+
+  web_server_scaleup_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: web_server_group}
+      cooldown: 60
+      scaling_adjustment: 1
+
+  web_server_scaledown_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: web_server_group}
+      cooldown: 60
+      scaling_adjustment: -1
+
+
+  cpu_alarm_high:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-up if the average CPU > 20% for 1 minute
+      meter_name: cpu_util
+      statistic: avg
+      period: 60
+      evaluation_periods: 1
+      threshold: 20
+      alarm_actions:
+        - {get_attr: [web_server_scaleup_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
+      comparison_operator: gt
+
+  cpu_alarm_low:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-down if the average CPU < 15% for 10 minutes
+      meter_name: cpu_util
+      statistic: avg
+      period: 60
+      evaluation_periods: 1
+      threshold: 15
+      alarm_actions:
+        - {get_attr: [web_server_scaledown_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
+      comparison_operator: lt
+
+
+##### Stack outputs #####
+
+
 outputs:
   pool_ip_address:
     value: {get_attr: [my_pool, vip, address]}
@@ -284,6 +316,9 @@ outputs:
   bastion_pub_ip:
     value: {get_attr: [bastion_floating_ip, ip]}
     description: The bastion Public IP address
+#  scale_up_url:
+#    value: {get_attr: [web_server_scaleup_policy, alarm_url]}
+#    description: Autoscaling alarm URL
   website_url:
     value:
       str_replace:
