@@ -1,7 +1,6 @@
 #!/bin/bash
-
 # 
-#	This script is for demonstration purposes ONLY !!!
+#	This script is for demonstration purposes ONLY !!! NOT FOR PRODUCTION USAGE
 #
 
 #### CHANGE ME ####
