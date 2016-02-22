@@ -34,7 +34,7 @@ ssh db01 "swift --os-auth-url $AUTH_URL  --os-username $swift_user --os-password
 
 if [ $? -eq 0 ]; then
 
-	echo "backup succesfully sent to swift, URL is https://showcase.rcip.redhat.com:8080/v1/AUTH_2e9fcfaa8a9f4e0aae8f4404088c8178/WP/$bkp_name"
+	echo "backup succesfully sent to swift, URL is https://showcase.rcip.redhat.com:8080/v1/AUTH_2e9fcfaa8a9f4e0aae8f4404088c8178/$folder/$bkp_name"
 else
 	echo "Upload to swift failed"
 fi
