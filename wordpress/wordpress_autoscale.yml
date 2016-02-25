@@ -31,6 +31,11 @@ parameters:
     description: min/initial number of web servers
     default: 2
 
+  web_max_pool:
+    type: string
+    description: max number of web servers
+    default: 5
+
   network_name:
     type: string
     description: Name of the deployed network
@@ -128,8 +133,8 @@ resources:
     type: OS::Heat::AutoScalingGroup
     depends_on: my_subnet
     properties:
-      min_size:  {get_param: web_min_pool}
-      max_size: 5
+      min_size: {get_param: web_min_pool}
+      max_size: {get_param: web_max_pool}
       resource:
         type: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/lb_server.yaml
         properties:
@@ -285,7 +290,7 @@ resources:
       statistic: avg
       period: 60
       evaluation_periods: 1
-      threshold: 20
+      threshold: 50
       alarm_actions:
         - {get_attr: [web_server_scaleup_policy, alarm_url]}
       matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
@@ -297,7 +302,7 @@ resources:
       description: Scale-down if the average CPU < 15% for 10 minutes
       meter_name: cpu_util
       statistic: avg
-      period: 60
+      period: 600
       evaluation_periods: 1
       threshold: 15
       alarm_actions:
