@@ -149,7 +149,7 @@ resources:
               str_replace:
                 template: |
                   #!/bin/bash
-                  yum -y install http://dl.fedoraproject.org/pub/epel/beta/7/x86_64/epel-release-7-0.2.noarch.rpm
+                  yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
                   yum -y install http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
                   yum --enablerepo=remi -y install httpd mariadb wordpress sysbench psmisc
                   systemctl enable httpd
@@ -264,6 +264,7 @@ resources:
 
 # Manual scaling can be done with :
 # heat stack-update stack_name -f wordpress_autoscale.yml -P "web_min_pool=N"
+# Check out matrics with ceilometer statistics --meter cpu_util -q 'resource_id=$instance_id' --period 60
 
   web_server_scaleup_policy:
     type: OS::Heat::ScalingPolicy
@@ -288,7 +289,7 @@ resources:
       description: Scale-up if the average CPU > 20% for 1 minute
       meter_name: cpu_util
       statistic: avg
-      period: 60
+      period: 120
       evaluation_periods: 1
       threshold: 50
       alarm_actions:
