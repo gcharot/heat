@@ -1,0 +1,193 @@
+heat_template_version: 2013-05-23
+description: Wordpress Autoscale example/demo AutoScaling - NOT FOR PRODUCTION
+
+parameters:
+  image:
+    type: string
+    description: Image used for servers
+    default: "CentOS 7 x86_64"
+
+  key:
+    type: string
+    description: SSH key to connect to the servers
+    default: gcharot
+
+  bastion_flavor:
+    type: string
+    description: flavor used by the bastion
+    default: m1.small
+
+  web_flavor:
+    type: string
+    description: flavor used by the web servers
+    default: m1.small
+
+  web_min_pool:
+    type: string
+    description: min/initial number of web servers
+    default: 1
+
+  web_max_pool:
+    type: string
+    description: max number of web servers
+    default: 5
+
+  network_name:
+    type: string
+    description: Name of the deployed network
+    default: demo_subnet
+
+  network_cidr:
+    type: string
+    description: CIDR of the deployed network
+    default: 10.0.0.0/24
+
+  rt_id:
+    type: string
+    description: ID of the router to connect the network to
+    default: 2f0c3cd1-e667-45e5-9452-1213dc1c7840
+
+  floating_net_id:
+    type: string
+    description: ID of the floating IP network for public IPs
+    default: 522762bc-3719-4cd7-be25-7832614aa65e
+
+resources:
+
+##### NETWORKING #####
+
+  my_network:
+    type: OS::Neutron::Net
+    properties:
+      name: {get_param: network_name}
+
+  my_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: my_network }
+      cidr:  {get_param: network_cidr}
+      enable_dhcp: true
+      dns_nameservers : [8.8.8.8]
+
+  router_int:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_param: rt_id }
+      subnet_id: { get_resource: my_subnet }
+
+
+##### Instances declaration #####
+
+# Autoscaling group for web fronts
+  web_server_group:
+    type: OS::Heat::AutoScalingGroup
+    depends_on: my_subnet
+    properties:
+      min_size: {get_param: web_min_pool}
+      max_size: {get_param: web_max_pool}
+      resource:
+        type: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/nolb_server.yaml
+        properties:
+            flavor: {get_param: web_flavor}
+            image: {get_param: image}
+            key_name: {get_param: key}
+            metadata: {"metering.stack": {get_param: "OS::stack_id"}}
+            net_id: {get_resource: my_network}
+            user_data:
+              str_replace:
+                template: |
+                  #!/bin/bash
+                  yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+                  yum -y install http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+                  yum --enablerepo=remi -y install sysbench psmisc
+                  iptables -F
+                  setenforce 0
+                  echo "sysbench --test=cpu --cpu-max-prime=2000000 run &" > /home/centos/burn.sh
+                  chmod 755 /home/centos/burn.sh
+                params:
+                  $bastion_host: {get_attr: [bastion, first_address]}
+
+
+# Bastion instance
+  bastion:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      name : bastion
+      flavor: {get_param: bastion_flavor}
+      key_name: gcharot
+      networks: 
+        - network: { get_resource: my_network }
+
+  bastion_floating_ip:
+    type: OS::Nova::FloatingIP
+    properties:
+      pool: public
+
+
+  bastion_float_association:
+    type: OS::Nova::FloatingIPAssociation
+    properties:
+      floating_ip: { get_resource: bastion_floating_ip }
+      server_id: { get_resource: bastion }
+
+
+###### AUTOSCALING POLICIES ######
+
+# Manual scaling can be done with :
+# heat stack-update stack_name -f wordpress_autoscale.yml -P "web_min_pool=N"
+# Check out matrics with ceilometer statistics --meter cpu_util -q 'resource_id=$instance_id' --period 60
+
+  web_server_scaleup_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: web_server_group}
+      cooldown: 60
+      scaling_adjustment: 1
+
+  web_server_scaledown_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: web_server_group}
+      cooldown: 60
+      scaling_adjustment: -1
+
+
+  cpu_alarm_high:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-up if the average CPU > 20% for 1 minute
+      meter_name: cpu_util
+      statistic: avg
+      period: 120
+      evaluation_periods: 1
+      threshold: 50
+      alarm_actions:
+        - {get_attr: [web_server_scaleup_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
+      comparison_operator: gt
+
+  cpu_alarm_low:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-down if the average CPU < 15% for 10 minutes
+      meter_name: cpu_util
+      statistic: avg
+      period: 600
+      evaluation_periods: 1
+      threshold: 15
+      alarm_actions:
+        - {get_attr: [web_server_scaledown_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
+      comparison_operator: lt
+
+
+##### Stack outputs #####
+
+
+outputs:
+  bastion_pub_ip:
+    value: {get_attr: [bastion_floating_ip, ip]}
+    description: The bastion Public IP address
