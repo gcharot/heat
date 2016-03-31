@@ -28,7 +28,8 @@ else
 fi
 
 
-ssh db01 "swift --os-auth-url $AUTH_URL  --os-username $swift_user --os-password $swift_pwd --os-tenant-name $swift_user upload $folder $bkp_name"
+ssh -o  StrictHostKeyChecking=no db01 "swift --os-auth-url $AUTH_URL  --os-username $swift_user --os-password $swift_pwd --os-tenant-name $swift_user upload $folder $bkp_name"
+
 
 if [ $? -eq 0 ]; then
 
