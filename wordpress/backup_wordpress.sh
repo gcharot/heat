@@ -4,8 +4,7 @@
 #
 
 #### CHANGE ME ####
-AUTH_URL=http://showcase.rcip.redhat.com:5000/v2.0
-
+AUTH_URL=AUTO_CHANGE
 
 echo -n  "please enter backup name : "
 read bkp_name
