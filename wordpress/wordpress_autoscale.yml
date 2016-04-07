@@ -1,6 +1,8 @@
 heat_template_version: 2013-05-23
 description: Wordpress Autoscale example/demo AutoScaling - NOT FOR PRODUCTION
 
+# Based on the official wordpress template - Gregory Charot - gcharot@redhat.com
+
 parameters:
   image:
     type: string
@@ -11,15 +13,30 @@ parameters:
     description: SSH key to connect to the servers
     default: gcharot
 
+  bastion_name:
+    type: string
+    description: Bastion hostname
+    default: bastion
+
   bastion_flavor:
     type: string
     description: flavor used by the bastion
     default: m1.small
 
+  db_name:
+    type: string
+    description: Database hostname
+    default: db01
+
   db_flavor:
     type: string
     description: flavor used by the dababase
     default: m1.small
+
+  webnode_name:
+    type: string
+    description: Webnode hostname
+    default: webnode
 
   web_flavor:
     type: string
@@ -148,6 +165,7 @@ resources:
       resource:
         type: https://raw.githubusercontent.com/gcharot/heat/master/wordpress/lb_server.yaml
         properties:
+            web_name: {get_param: webnode_name}
             flavor: {get_param: web_flavor}
             image: {get_param: image}
             key_name: {get_param: key}
@@ -192,7 +210,7 @@ resources:
     type: OS::Nova::Server
     properties:
       image: {get_param: image}
-      name : db01
+      name : {get_param: db_name}
       flavor: {get_param: db_flavor}
       key_name: gcharot
       networks: 
@@ -232,7 +250,7 @@ resources:
     type: OS::Nova::Server
     properties:
       image: {get_param: image}
-      name : bastion
+      name : {get_param: bastion_name}
       flavor: {get_param: bastion_flavor}
       key_name: gcharot
       networks: 
