@@ -48,13 +48,23 @@ parameters:
 
   restore_from:
     type: string
-    description: container and name of the backup to restore from
+    description: Container and name of the backup to restore from
     default: none
 
   swift_ten_id:
     type: string
-    description: swift id
+    description: swift id for backups/restore only
     default: b0d0602de97f47c8ae25f48b2052ad19
+
+  swift_auth_url:
+    type: string
+    description: Authentication URL for backups only (same as your OS_AUTH_URL)
+    default: http://showcase.rcip.redhat.com:5000/v2.0
+
+  swift_url:
+    type: string
+    description: Swift API URL for backups/restore only
+    default: http://showcase.rcip.redhat.com:8080/v1
 
   rt_id:
     type: string
@@ -210,11 +220,12 @@ resources:
             setenforce 0
             sed -i  's/=enforcing/=disabled/g' /etc/selinux/config
             if [ $backup != 'none' ]; then
-              curl -s  http://showcase.rcip.redhat.com:8080/v1/AUTH_$swift_id/$backup | mysql -u root -p'mariaroot' wp
+              curl -s  $swift_url/AUTH_$swift_id/$backup | mysql -u root -p'mariaroot' wp
             fi
           params:
             $backup: {get_param: restore_from}
             $swift_id: {get_param: swift_ten_id}
+            $swift_url: {get_param: swift_url}
 
 # Bastion instance
   bastion:
@@ -233,9 +244,11 @@ resources:
             echo "$db_host db01 db01" >> /etc/hosts 
             yum -y install wget
             wget https://raw.githubusercontent.com/gcharot/heat/master/wordpress/backup_wordpress.sh -O /usr/local/bin/backup_wordpress.sh
+            sed -i 's|AUTO_CHANGE|$swift_url|' /usr/local/bin/backup_wordpress.sh
             chmod 755 /usr/local/bin/backup_wordpress.sh
           params:
             $db_host: {get_attr: [db01, first_address]}
+            $swift_url: {get_param: swift_auth_url}
 
   bastion_floating_ip:
     type: OS::Nova::FloatingIP
