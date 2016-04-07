@@ -19,7 +19,7 @@ parameters:
   user_data:
     type: string
     description: Server user_data
-  name:
+  web_name:
     type: string
     description: Webnode hostname
   metadata:
@@ -34,7 +34,7 @@ resources:
       image: {get_param: image}
       key_name: {get_param: key_name}
       metadata: {get_param: metadata}
-      name: {get_param: name}
+      name: {get_param: web_name}
       networks: 
         - network: { get_param: net_id }
       user_data: {get_param: user_data}
