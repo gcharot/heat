@@ -25,6 +25,7 @@ if [ $? -eq 0 ]; then
 	echo "backup succesfull, now sending to swift"
 else
 	echo "backup failed, exiting"
+	exit 1
 fi
 
 
