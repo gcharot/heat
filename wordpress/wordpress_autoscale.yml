@@ -254,7 +254,7 @@ resources:
       flavor: {get_param: bastion_flavor}
       key_name: gcharot
       networks: 
-        - network: { get_resource: my_network }
+        - port: { get_resource: bastion_port }
       user_data:
         str_replace:
           template: |
@@ -268,27 +268,24 @@ resources:
             $db_host: {get_attr: [db01, first_address]}
             $swift_url: {get_param: swift_auth_url}
 
-  bastion_floating_ip:
-    type: OS::Nova::FloatingIP
+
+  bastion_port:
+    type: OS::Neutron::Port
     properties:
-      pool: public
+      network_id: { get_resource: my_network }
+      fixed_ips:
+        - subnet_id: { get_resource: my_subnet }
 
 
-  bastion_float_association:
-    type: OS::Nova::FloatingIPAssociation
-    properties:
-      floating_ip: { get_resource: bastion_floating_ip }
-      server_id: { get_resource: bastion }
+  bastion_floating:
+     type: OS::Neutron::FloatingIP
+     depends_on: router_int
+     properties:
+      floating_network_id: { get_param: floating_net_id }
+      port_id: { get_resource: bastion_port }
 
 
-#  bastion_floating:
-#    type: OS::Neutron::FloatingIP
-#    depends_on: router_int
-#    properties:
-#      floating_network_id: 6c83db7b-480e-4198-bc69-88df6fd17e55
-#      port_id:
-#        get_attr: [bastion, addresses, port_id]
-# 
+
 
 
 ###### AUTOSCALING POLICIES ######
@@ -351,7 +348,7 @@ outputs:
     value: {get_attr: [my_pool, vip, address]}
     description: The IP address of the load balancing pool
   bastion_pub_ip:
-    value: {get_attr: [bastion_floating_ip, ip]}
+    value: {get_attr: [bastion_floating, floating_ip_address]}
     description: The bastion Public IP address
 #  scale_up_url:
 #    value: {get_attr: [web_server_scaleup_policy, alarm_url]}
