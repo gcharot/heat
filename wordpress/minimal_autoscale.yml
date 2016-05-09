@@ -5,7 +5,7 @@ parameters:
   image:
     type: string
     description: Image used for servers
-    default: "CentOS 7 x86_64"
+    default: "CentOS 7"
 
   key:
     type: string
@@ -45,12 +45,12 @@ parameters:
   rt_id:
     type: string
     description: ID of the router to connect the network to
-    default: 2f0c3cd1-e667-45e5-9452-1213dc1c7840
+    default: 15f5f0a4-39dc-4e1d-8000-38c26da4c9c8
 
   floating_net_id:
     type: string
     description: ID of the floating IP network for public IPs
-    default: 522762bc-3719-4cd7-be25-7832614aa65e
+    default: 6686259a-e894-4496-ad8d-681b303eb80f
 
 resources:
 
@@ -122,7 +122,7 @@ resources:
   bastion_floating_ip:
     type: OS::Nova::FloatingIP
     properties:
-      pool: public
+      pool: nova
 
 
   bastion_float_association:
@@ -158,12 +158,12 @@ resources:
   cpu_alarm_high:
     type: OS::Ceilometer::Alarm
     properties:
-      description: Scale-up if the average CPU > 20% for 1 minute
+      description: Scale-up if the average CPU > 50% for 2 minute
       meter_name: cpu_util
       statistic: avg
       period: 120
       evaluation_periods: 1
-      threshold: 50
+      threshold: 30
       alarm_actions:
         - {get_attr: [web_server_scaleup_policy, alarm_url]}
       matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
